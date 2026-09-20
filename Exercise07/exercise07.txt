@@ -1,0 +1,99 @@
+Exercise 7: Summary Comparison
+
+1. Comparison of All 6 Programs
+
+Program                  Communication                  Array Allocation
+Exercise 1               MPI_Bcast + MPI_Send/Recv     Full array on every process
+Exercise 2               MPI_Scatter + MPI_Send/Recv   Full array on root, chunk on others
+Exercise 3               MPI_Scatter + MPI_Gather     Full array on root, chunk on others
+Exercise 4               MPI_Scatter + MPI_Reduce     Full array on root, chunk on others
+Exercise 5               MPI_Scatter + MPI_Allreduce  Full array on root, chunk on others
+Exercise 6               MPI_Scatter + MPI_Scan       Full array on root, chunk on others
+
+
+Program                  Manual Root Sum?              Final Result
+Exercise 1               Yes                           Root only
+Exercise 2               Yes                           Root only
+Exercise 3               Yes                           Root only
+Exercise 4               No                            Root only
+Exercise 5               No                            All processes
+Exercise 6               No                            Different prefix per rank
+
+
+2. Benchmark Results
+
+All programs were tested with 2, 4, and 8 MPI processes.
+
+Program                  2 Processes   4 Processes   8 Processes
+Bcast + Send/Recv          0.0048 s       0.0085 s       0.0123 s
+Scatter + Send/Recv       0.0042 s       0.0048 s       0.0040 s
+Scatter + Gather          0.0053 s       0.0042 s       0.0051 s
+Scatter + Reduce          0.0045 s       0.0037 s       0.0043 s
+Scatter + Allreduce       0.0047 s       0.0032 s       0.0047 s
+Scatter + Scan            0.0089 s       0.0042 s       0.0095 s
+
+All six programs produced the correct result:
+
+Expected total = 500000500000
+
+
+Fastest measured result:
+
+2 processes:
+Scatter + Send/Recv = 0.0042 seconds
+
+4 processes:
+Scatter + Allreduce = 0.0032 seconds
+
+8 processes:
+Scatter + Send/Recv = 0.0040 seconds
+
+The measured times depend on the EC2 machine, MPI implementation,
+system load, process scheduling, and communication overhead.
+
+MPI_Scatter is more memory efficient than MPI_Bcast because each
+process receives only the chunk that it needs.
+
+MPI_Reduce combines all local values and returns the final result
+directly to the root.
+
+MPI_Allreduce gives the final result to every process.
+
+MPI_Scan produces cumulative prefix results, so it is useful when
+different ranks need different cumulative values.
+
+
+3. Thinking Question
+
+Question:
+In what situation would you choose MPI_Scan over MPI_Allreduce?
+
+Answer:
+MPI_Scan should be used when each process needs a cumulative result
+from rank 0 through its own rank.
+
+For example, suppose four processes have:
+
+Rank 0 = 100 records
+Rank 1 = 200 records
+Rank 2 = 150 records
+Rank 3 = 250 records
+
+MPI_Scan with MPI_SUM produces:
+
+Rank 0 = 100
+Rank 1 = 300
+Rank 2 = 450
+Rank 3 = 700
+
+These values can be used as global offsets when assigning positions
+in a distributed array.
+
+MPI_Allreduce would instead give every process the same value:
+
+700
+
+Therefore, MPI_Scan is appropriate for prefix sums, global offsets,
+cumulative counts, and load-balanced work assignment, while
+MPI_Allreduce is appropriate when every process needs the same
+global result.
